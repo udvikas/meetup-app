@@ -1,51 +1,75 @@
 import MeetupDetail from "../../components/meetups/MeetupDetail";
-
-function MeetupDetails() {
+import { MongoClient, ObjectId } from "mongodb";
+function MeetupDetails(props) {
   return (
     <MeetupDetail
-      image="https://upload.wikimedia.org/wikipedia/commons/a/a0/Naschmarktleipzig858.JPG"
-      title="A First Meetup"
-      address="some steet 5, some city"
-      description="this is a first meetup!"
+      image={props.meetupData.image}
+      title={props.meetupData.title}
+      address={props.meetupData.address}
+      description={props.meetupData.description}
     ></MeetupDetail>
   );
 }
 export async function getStaticPaths() {
+  const client = await MongoClient.connect(
+    "mongodb+srv://kvikashsharma09:udvikashsharma09@cluster0.8ia7u3g.mongodb.net/meetups?retryWrites=true&w=majority"
+  );
+  const db = client.db();
+
+  const meetupsCollection = db.collection("meetups");
+  const meetups = await meetupsCollection.find({}, { _id: 1 }).toArray();
+
+  client.close();
   return {
     fallback: false, //path contains all supported meetupId values
-    paths: [
-      {
-        params: {
-          meetupId: "m1",
-        },
-      },
-      {
-        params: {
-          meetupId: "m2",
-        },
-      },
-      {
-        params: {
-          meetupId: "m3",
-        },
-      },
-    ],
+    paths: meetups.map((meetup) => ({
+      params: { meetupId: meetup._id.toString() },
+    })),
+
+    // [
+    //   {
+    //     params: {
+    //       meetupId: "m1",
+    //     },
+    //   },
+    //   {
+    //     params: {
+    //       meetupId: "m2",
+    //     },
+    //   },
+    //   {
+    //     params: {
+    //       meetupId: "m3",
+    //     },
+    //   },
+    // ],
   };
 }
 export async function getStaticProps(context) {
   // fetch data for single meetup
 
   const meetupId = context.params.meetupId;
-  console.log(meetupId);
+
+  const client = await MongoClient.connect(
+    "mongodb+srv://kvikashsharma09:udvikashsharma09@cluster0.8ia7u3g.mongodb.net/meetups?retryWrites=true&w=majority"
+  );
+  const db = client.db();
+
+  const meetupsCollection = db.collection("meetups");
+
+  const selectedMeetup = await meetupsCollection.findOne({
+    _id: new ObjectId(meetupId),
+  });
+  client.close();
+
   return {
     props: {
       meetupData: {
-        image:
-          "https://upload.wikimedia.org/wikipedia/commons/a/a0/Naschmarktleipzig858.JPG",
-        id: meetupId,
-        title: "A First Meetup",
-        address: "some steet 5, some city",
-        description: "this is a first meetup!",
+        id: selectedMeetup._id.toString(),
+        title: selectedMeetup.title,
+        address: selectedMeetup.address,
+        image: selectedMeetup.image,
+        description: selectedMeetup.description,
       },
     },
   };
